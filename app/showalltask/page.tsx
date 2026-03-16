@@ -27,6 +27,7 @@ export default function Page() {
   useEffect(() => {
     //ฟังก์ชันดึงข้อมูล
     const fetchTasks = async () => {
+
       //ดึงข้อมูล
       const { data, error } = await supabase
         .from("task_tb")
