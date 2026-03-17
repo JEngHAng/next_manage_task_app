@@ -53,7 +53,49 @@ export default function Page() {
     //เรียกใช้ฟัง์ชันดึงข้อมูล
     fetchTasks();
   }, []);
- 
+
+  // ฟังก์ชันลบข้อมูล
+  const handleDeleteClick = async (id: string, image_url: string) => {
+    // ยืนยันการลบข้อมูล
+    Swal.fire({
+      title: "ยืนยันการลบ",
+      text: "คุณต้องการลบข้อมูลนี้หรือไม่?",
+      icon: "question",
+      confirmButtonText: "ใช่, ลบเลย",
+      showCancelButton: true,
+      cancelButtonText: "ไม่, ยกเลิก",
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        // 1. ลบข้อมูลใน database
+        const { error: error1 } = await supabase.from("task_tb").delete().eq("id", id);
+
+        // 2. ลบข้อมูลใน storage
+        if (image_url) {
+          const { error: error2 } = await supabase.storage.from("task_bk").remove([image_url.substring(image_url.lastIndexOf("/") + 1)]);
+        }
+
+        if (error1) {
+          Swal.fire({
+            icon: "error",
+            title: "เกิดข้อผิดพลาด",
+            text: "ไม่สามารถลบข้อมูลจากฐานข้อมูลได้",
+          });
+        } else {
+          // 3. อัปเดต State เพื่อให้ UI แสดงผลข้อมูลล่าสุดโดยไม่ต้อง Refresh
+          setTasks(tasks.filter((task) => task.id !== id));
+
+          Swal.fire({
+            icon: "success",
+            title: "ลบสำเร็จ",
+            text: "ลบข้อมูลเรียบร้อยแล้ว",
+            timer: 1500,
+            showConfirmButton: false,
+          });
+        }
+      }
+    });
+  };
+
   return (
     <>
       <div
@@ -112,7 +154,16 @@ export default function Page() {
                   {new Date(item.update_at).toLocaleString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
                 </td>
                 <td className="border border-gray-500 p-2 text-center">
-                    แก้ไข|ลบ
+                    
+                    <Link href={`/edittask/${item.id} `} className=" text-green-500 hover:text-green-600 ">
+                      แก้ไข
+                    </Link>
+                    {' '}|{' '} 
+                    <button className="cursor-pointer text-red-500 hover:text-red-600"
+                                      onClick={() => handleDeleteClick(item.id, item.image_url)}>
+                        ลบ
+                    </button>
+                    
                 </td>
               </tr>
             ))}
